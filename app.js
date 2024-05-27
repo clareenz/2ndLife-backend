@@ -4,28 +4,28 @@ const app = express();
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const path =require("path");
+const path = require("path");
 
-app.use(express.json());
-app.use(cookieParser());
-app.use(
-  cors({
-    origin: [`https://frontend-topaz-ten.vercel.app`,'http://localhost:3000'],
-    credentials: true,
-  })
-);
-app.use("/", express.static(path.join(__dirname,"./uploads")));
-app.use("/test", (req,res) => {
-  res.send("Hello world!");
-});
-app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
-
-// config
+// Load environment variables from .env file
 if (process.env.NODE_ENV !== "PRODUCTION") {
   require("dotenv").config({
     path: "config/.env",
   });
 }
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: [process.env.FRONTEND_URL, 'http://localhost:3000'],
+    credentials: true,
+  })
+);
+app.use("/", express.static(path.join(__dirname, "./uploads")));
+app.use("/test", (req, res) => {
+  res.send("Hello world!");
+});
+app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 
 // import routes
 const user = require("./controller/user");
@@ -39,7 +39,6 @@ const payment = require("./controller/payment");
 const order = require("./controller/order");
 const withdraw = require("./controller/withdraw");
 
-
 app.use("/api/v2/user", user);
 app.use("/api/v2/shop", shop);
 app.use("/api/v2/product", product);
@@ -51,8 +50,7 @@ app.use("/api/v2/payment", payment);
 app.use("/api/v2/order", order);
 app.use("/api/v2/withdraw", withdraw);
 
-
-// its for ErrorHandling
+// Error handling middleware
 app.use(ErrorHandler);
 
 module.exports = app;

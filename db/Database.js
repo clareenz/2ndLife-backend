@@ -5,6 +5,7 @@ const connectDatabase = () => {
     .connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      autoIndex: true,
     })
     .then((data) => {
       console.log(`mongod connected with server: ${data.connection.host}`);

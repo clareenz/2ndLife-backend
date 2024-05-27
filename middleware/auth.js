@@ -32,6 +32,36 @@ exports.isSeller = catchAsyncErrors(async(req,res,next) => {
     next();
 });
 
+
+exports.verifyResetToken = async (req, res, next) => {
+    const { token } = req.params; // Assuming the token is provided in the URL parameters
+
+    try {
+        // Verify the token
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+
+        // Check if the token is valid and not expired
+        const user = await User.findOne({
+            _id: decodedToken.userId,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }, // Check if the expiry time is in the future
+        });
+
+        if (!user) {
+            throw new Error("Invalid or expired token");
+        }
+
+        // Attach the user to the request object for further processing
+        req.user = user;
+
+        // Proceed to the next middleware or route handler
+        next();
+    } catch (error) {
+        // Handle token verification errors
+        return next(new ErrorHandler("Invalid or expired token", 401));
+    }
+};
+
 exports.isAdmin = (...roles) => {
     return (req,res,next) => {
         if(!roles.includes(req.user.role)){
@@ -40,3 +70,4 @@ exports.isAdmin = (...roles) => {
         next();
     }
 }
+
