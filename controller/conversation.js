@@ -5,6 +5,7 @@ const express = require("express");
 const { isSeller, isAuthenticated } = require("../middleware/auth");
 const conversation = require("../model/conversation");
 const router = express.Router();
+const Message = require("../model/messages");
 
 // create a new conversation
 router.post(
@@ -105,5 +106,32 @@ router.put(
   })
 );
 
+// Delete conversation by ID
+router.delete(
+  "/delete-conversation/:id",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      // Find and delete the conversation by its ID
+      const conversation = await Conversation.findByIdAndDelete(id);
+
+      // Check if the conversation was found and deleted
+      if (!conversation) {
+        return next(new ErrorHandler("Conversation not found", 404));
+      }
+
+      // Delete all messages associated with the conversation
+      await Message.deleteMany({ conversationId: id });
+
+      res.status(200).json({
+        success: true,
+        message: "Conversation and associated messages deleted successfully",
+      });
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
 
 module.exports = router;
