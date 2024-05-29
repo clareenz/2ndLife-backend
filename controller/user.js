@@ -1,3 +1,4 @@
+const cloudinary = require("cloudinary");
 const express = require("express");
 const path = require("path");
 const User = require("../model/user");
@@ -22,41 +23,43 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
   });
 }
 
-router.post("/create-user", upload.single("file"), async (req, res, next) => {
+// create user
+router.post("/create-user", async (req, res, next) => {
+  const { name, email, password, avatar } = req.body;
   try {
-    const { name, email, password } = req.body;
     const userEmail = await User.findOne({ email });
+
     if (userEmail) {
-      const filename = req.file.filename;
-      const filePath = `uploads/${filename}`;
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.log(err);
-          res.status(500).json({ message: "Error deleting file" });
-        }
-      });
       return next(new ErrorHandler("User already exists", 400));
     }
-    const filename = req.file.filename;
-    const fileUrl = path.join(filename);
+
+    const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+      folder: "avatars",
+    });
+
     const user = {
       name: name,
       email: email,
       password: password,
-      avatar: fileUrl,
+      avatar: {
+        public_id: myCloud.public_id,
+        url: myCloud.secure_url,
+      },
     };
+
     const activationToken = createActivationToken(user);
+
     const activationUrl = `${process.env.FRONTEND_URL}/activation/${activationToken}`;
+
     try {
       await sendMail({
-        name: name, // Pass the user's name here
         email: user.email,
         subject: "Activate your account",
-        activationUrl: activationUrl, // Pass the activation URL here
+        message: `Hello ${user.name}, please click on the link to activate your account: ${activationUrl}`,
       });
       res.status(201).json({
         success: true,
-        message: `Please check your email (${user.email}) to activate your account!`,
+        message: `please check your email:- ${user.email} to activate your account!`,
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
@@ -217,21 +220,28 @@ router.put(
   upload.single("image"),
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const existsUser = await User.findById(req.user.id);
+      let existsUser = await User.findById(req.user.id);
+      if (req.body.avatar !== "") {
+        const imageId = existsUser.avatar.public_id;
 
-      const existAvatarPath = `uploads/${existsUser.avatar}`;
+        await cloudinary.v2.uploader.destroy(imageId);
 
-      fs.unlinkSync(existAvatarPath);
+        const myCloud = await cloudinary.uploader.upload(req.file.path, {
+          folder: "avatars",
+        });
+  
 
-      const fileUrl = path.join(req.file.filename);
+        existsUser.avatar = {
+          public_id: myCloud.public_id,
+          url: myCloud.secure_url,
+        };
+      }
 
-      const user = await User.findByIdAndUpdate(req.user.id, {
-        avatar: fileUrl,
-      });
+      await existsUser.save();
 
       res.status(200).json({
         success: true,
-        user,
+        user: existsUser,
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));

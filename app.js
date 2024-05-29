@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
+const cloudinary = require("cloudinary");
 
 // Load environment variables from .env file
 if (process.env.NODE_ENV !== "PRODUCTION") {
@@ -26,6 +27,9 @@ app.use("/test", (req, res) => {
   res.send("Hello world!");
 });
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: '500mb' }));
+app.options("*", cors());
+
 
 // import routes
 const user = require("./controller/user");
