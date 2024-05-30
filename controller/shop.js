@@ -4,7 +4,11 @@ const router = express.Router();
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/sendMail");
-const { sendActivationEmail, sendPasswordResetEmail, sendSellerActivationEmail } = require('../utils/sendMail');
+const {
+  sendActivationEmail,
+  sendPasswordResetEmail,
+  sendSellerActivationEmail,
+} = require("../utils/sendMail");
 const sendToken = require("../utils/jwtToken");
 const Shop = require("../model/shop");
 const { isAuthenticated, isSeller, isAdmin } = require("../middleware/auth");
@@ -24,22 +28,27 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
 // create shop
 router.post(
   "/create-shop",
+  upload.single("file"),
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const { email } = req.body;
+      const { name, email, password } = req.body;
       const sellerEmail = await Shop.findOne({ email });
       if (sellerEmail) {
         return next(new ErrorHandler("User already exists", 400));
       }
 
-      const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
+      const fileName = req.file.filename;
+      const filePath = req.file.path;
+
+      const myCloud = await cloudinary.v2.uploader.upload(filePath, {
         folder: "avatars",
+        public_id: fileName,
       });
 
       const seller = {
-        name: req.body.name,
+        name: name,
         email: email,
-        password: req.body.password,
+        password: password,
         avatar: {
           public_id: myCloud.public_id,
           url: myCloud.secure_url,
@@ -48,8 +57,6 @@ router.post(
         phoneNumber: req.body.phoneNumber,
         zipCode: req.body.zipCode,
       };
-      
-      console.log(seller)
 
       const activationToken = createActivationToken(seller);
 
@@ -57,6 +64,7 @@ router.post(
 
       try {
         await sendSellerActivationEmail({
+          name: name, // Pass the user's name here
           email: seller.email,
           subject: "Activate your Shop",
           activationUrlSeller: activationUrl,
@@ -73,7 +81,6 @@ router.post(
     }
   })
 );
-
 
 // create activation token
 const createActivationToken = (seller) => {
@@ -222,26 +229,25 @@ router.put(
     try {
       let existsSeller = await Shop.findById(req.seller._id);
 
-        const imageId = existsSeller.avatar.public_id;
+      const imageId = existsSeller.avatar.public_id;
 
-        await cloudinary.v2.uploader.destroy(imageId);
+      await cloudinary.v2.uploader.destroy(imageId);
 
-        const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
-          folder: "avatars",
-          width: 150,
-        });
+      const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
+        folder: "avatars",
+        width: 150,
+      });
 
-        existsSeller.avatar = {
-          public_id: myCloud.public_id,
-          url: myCloud.secure_url,
-        };
-
+      existsSeller.avatar = {
+        public_id: myCloud.public_id,
+        url: myCloud.secure_url,
+      };
 
       await existsSeller.save();
 
       res.status(200).json({
         success: true,
-        seller:existsSeller,
+        seller: existsSeller,
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));

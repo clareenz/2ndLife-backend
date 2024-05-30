@@ -14,6 +14,7 @@ const cloudinary = require("cloudinary");
 // create product
 router.post(
   "/create-product",
+  upload.array("images"),
   catchAsyncErrors(async (req, res, next) => {
     try {
       const shopId = req.body.shopId;
@@ -23,17 +24,15 @@ router.post(
       } else {
         let images = [];
 
-        if (typeof req.body.images === "string") {
-          images.push(req.body.images);
-        } else {
-          images = req.body.images;
-        }
+       
+        images = req.files;
       
         const imagesLinks = [];
       
         for (let i = 0; i < images.length; i++) {
-          const result = await cloudinary.v2.uploader.upload(images[i], {
+          const result = await cloudinary.v2.uploader.upload(images[i].path, {
             folder: "products",
+            public_id: images[i].filename,
           });
       
           imagesLinks.push({

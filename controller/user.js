@@ -8,7 +8,11 @@ const ErrorHandler = require("../utils/ErrorHandler");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
-const { sendActivationEmail, sendPasswordResetEmail, sendSellerActivationEmail } = require('../utils/sendMail');
+const {
+  sendActivationEmail,
+  sendPasswordResetEmail,
+  sendSellerActivationEmail,
+} = require("../utils/sendMail");
 const sendToken = require("../utils/jwtToken");
 const { isAuthenticated, isAdmin } = require("../middleware/auth");
 const user = require("../model/user");
@@ -24,17 +28,28 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
 }
 
 // create user
-router.post("/create-user", async (req, res, next) => {
-  const { name, email, password, avatar } = req.body;
+router.post("/create-user", upload.single("file"), async (req, res, next) => {
   try {
+    const { name, email, password } = req.body;
     const userEmail = await User.findOne({ email });
 
+    const fileName = req.file.filename;
+    const filePath = req.file.path;
+
+    //user exist
     if (userEmail) {
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.log(err);
+          res.status(500).json({ message: "Error deleting file" });
+        }
+      });
       return next(new ErrorHandler("User already exists", 400));
     }
 
-    const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+    const myCloud = await cloudinary.v2.uploader.upload(filePath, {
       folder: "avatars",
+      public_id: fileName,
     });
 
     const user = {
@@ -47,18 +62,22 @@ router.post("/create-user", async (req, res, next) => {
       },
     };
 
+    console.log(user);
+    // Clean up the file after uploading
+    fs.unlinkSync(filePath);
+
     const activationToken = createActivationToken(user);
     const activationUrl = `${process.env.FRONTEND_URL}/activation/${activationToken}`;
-
     try {
       await sendActivationEmail({
+        name: name, // Pass the user's name here
         email: user.email,
         subject: "Activate your account",
-        activationUrl: activationUrl,
+        activationUrl: activationUrl, // Pass the activation URL here
       });
       res.status(201).json({
         success: true,
-        message: `please check your email:- ${user.email} to activate your account!`,
+        message: `Please check your email (${user.email}) to activate your account!`,
       });
     } catch (error) {
       return next(new ErrorHandler(error.message, 500));
@@ -225,21 +244,20 @@ router.put(
 
         await cloudinary.v2.uploader.destroy(imageId);
 
+        const fileName = req.file.filename;
         const filePath = req.file.path;
-        const fileName =  req.file.filename; // Get the original file name without extension
-    
-        const myCloud = await cloudinary.uploader.upload(filePath, {
-          folder: 'avatars',
-          public_id: fileName // Set custom file name
+
+        const myCloud = await cloudinary.v2.uploader.upload(filePath, {
+          folder: "avatars",
+          public_id: fileName,
         });
-  
 
         existsUser.avatar = {
           public_id: myCloud.public_id,
           url: myCloud.secure_url,
         };
       }
-
+      
       await existsUser.save();
 
       res.status(200).json({
@@ -371,7 +389,6 @@ router.get(
   })
 );
 
-
 //forgot password
 router.post(
   "/forgot-password",
@@ -390,7 +407,7 @@ router.post(
 
       try {
         await sendPasswordResetEmail({
-          name: user.name || 'User', // Assuming you have a name field
+          name: user.name || "User", // Assuming you have a name field
           email: user.email,
           subject: "Password Reset",
           resetLink: resetLink,
@@ -448,7 +465,6 @@ router.post(
   })
 );
 
-
 // all users --- for admin
 router.get(
   "/admin-all-users",
@@ -497,4 +513,3 @@ router.delete(
 );
 
 module.exports = router;
-
