@@ -8,7 +8,7 @@ const ErrorHandler = require("../utils/ErrorHandler");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
-const sendMail = require("../utils/sendMail");
+const { sendActivationEmail, sendPasswordResetEmail, sendSellerActivationEmail } = require('../utils/sendMail');
 const sendToken = require("../utils/jwtToken");
 const { isAuthenticated, isAdmin } = require("../middleware/auth");
 const user = require("../model/user");
@@ -48,14 +48,13 @@ router.post("/create-user", async (req, res, next) => {
     };
 
     const activationToken = createActivationToken(user);
-
     const activationUrl = `${process.env.FRONTEND_URL}/activation/${activationToken}`;
 
     try {
-      await sendMail({
+      await sendActivationEmail({
         email: user.email,
         subject: "Activate your account",
-        message: `Hello ${user.name}, please click on the link to activate your account: ${activationUrl}`,
+        activationUrl: activationUrl,
       });
       res.status(201).json({
         success: true,
@@ -372,7 +371,7 @@ router.get(
 //forgot password
 router.post(
   "/forgot-password",
-  catchAsyncErrors(async (req, res) => {
+  catchAsyncErrors(async (req, res, next) => {
     try {
       const user = await User.findOne({ email: req.body.email });
       if (!user) {
@@ -383,33 +382,24 @@ router.post(
         expiresIn: "10m",
       });
 
-      const transporter = nodemailer.createTransport({
-        service: process.env.SMPT_SERVICE,
-        auth: {
-          user: process.env.SMPT_MAIL,
-          pass: process.env.SMPT_PASSWORD,
-        },
-      });
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
 
-      const mailOptions = {
-        from: process.env.SMPT_MAIL,
-        to: req.body.email,
-        subject: "Reset Password",
-        html: `<h1>Reset Your Password</h1>
-    <p>Click on the following link to reset your password:</p>
-    <a href="http://localhost:3000/reset-password/${token}">http://localhost:3000/reset-password/${token}</a>
-    <p>The link will expire in 10 minutes.</p>
-    <p>If you didn't request a password reset, please ignore this email.</p>`,
-      };
-
-      transporter.sendMail(mailOptions, (err, info) => {
-        if (err) {
-          return res.status(500).send({ message: err.message });
-        }
-        res.status(200).send({ message: "Email sent" });
-      });
+      try {
+        await sendPasswordResetEmail({
+          name: user.name || 'User', // Assuming you have a name field
+          email: user.email,
+          subject: "Password Reset",
+          resetLink: resetLink,
+        });
+        res.status(201).json({
+          success: true,
+          message: "Email sent successfully",
+        });
+      } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+      }
     } catch (error) {
-      res.status(500).send({ message: err.message });
+      return next(new ErrorHandler(error.message, 400));
     }
   })
 );

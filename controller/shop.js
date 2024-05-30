@@ -4,6 +4,7 @@ const router = express.Router();
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/sendMail");
+const { sendActivationEmail, sendPasswordResetEmail, sendSellerActivationEmail } = require('../utils/sendMail');
 const sendToken = require("../utils/jwtToken");
 const Shop = require("../model/shop");
 const { isAuthenticated, isSeller, isAdmin } = require("../middleware/auth");
@@ -47,16 +48,18 @@ router.post(
         phoneNumber: req.body.phoneNumber,
         zipCode: req.body.zipCode,
       };
+      
+      console.log(seller)
 
       const activationToken = createActivationToken(seller);
 
       const activationUrl = `${process.env.FRONTEND_URL}/seller/activation/${activationToken}`;
 
       try {
-        await sendMail({
+        await sendSellerActivationEmail({
           email: seller.email,
           subject: "Activate your Shop",
-          message: `Hello ${seller.name}, please click on the link to activate your shop: ${activationUrl}`,
+          activationUrlSeller: activationUrl,
         });
         res.status(201).json({
           success: true,
@@ -70,6 +73,7 @@ router.post(
     }
   })
 );
+
 
 // create activation token
 const createActivationToken = (seller) => {

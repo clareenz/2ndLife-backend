@@ -16,8 +16,6 @@ router.post(
   "/create-product",
   catchAsyncErrors(async (req, res, next) => {
     try {
-
-      return next(new ErrorHandler( req.body, 400));
       const shopId = req.body.shopId;
       const shop = await Shop.findById(shopId);
       if (!shop) {
