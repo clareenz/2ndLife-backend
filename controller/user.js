@@ -225,8 +225,12 @@ router.put(
 
         await cloudinary.v2.uploader.destroy(imageId);
 
-        const myCloud = await cloudinary.uploader.upload(req.file.path, {
-          folder: "avatars",
+        const filePath = req.file.path;
+        const fileName =  req.file.filename; // Get the original file name without extension
+    
+        const myCloud = await cloudinary.uploader.upload(filePath, {
+          folder: 'avatars',
+          public_id: fileName // Set custom file name
         });
   
 
