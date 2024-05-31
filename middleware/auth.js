@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../model/user");
 const Shop = require("../model/shop");
 
+
 // Middleware to check if a user is authenticated
 exports.isAuthenticated = catchAsyncErrors(async (req, res, next) => {
     const { token } = req.cookies;

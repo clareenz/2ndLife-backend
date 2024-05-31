@@ -10,8 +10,8 @@ const cloudinary = require("cloudinary");
 // Load environment variables from .env file
 if (process.env.NODE_ENV !== "PRODUCTION") {
   require("dotenv").config({
-    //path: "backend/config/.env",
-    path: "config/.env",
+    path: "backend/config/.env",
+    //path: "config/.env",
   });
 }
 
@@ -45,6 +45,8 @@ const order = require("./controller/order");
 const withdraw = require("./controller/withdraw");
 const cart = require("./controller/cart");
 const fbLogin = require("./controller/authRoutes");
+const report = require("./controller/report");
+
 
 app.use("/api/v2/user", user);
 app.use("/api/v2/shop", shop);
@@ -58,6 +60,8 @@ app.use("/api/v2/order", order);
 app.use("/api/v2/withdraw", withdraw);
 app.use("/api/v2/cart", cart);
 app.use("/api/v2/fbLogin", fbLogin);
+app.use("/api/v2/report", report);
+
 
 // Error handling middleware
 app.use(ErrorHandler);

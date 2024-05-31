@@ -17,6 +17,7 @@ const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const ErrorHandler = require("../utils/ErrorHandler");
 const sendShopToken = require("../utils/shopToken");
 const cloudinary = require("cloudinary");
+const shop = require("../model/shop");
 
 // Load environment variables
 if (process.env.NODE_ENV !== "PRODUCTION") {
@@ -425,5 +426,89 @@ router.delete(
     }
   })
 );
+
+// Forgot seller password route
+router.post(
+  "/forgot-seller-password",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const seller = await Shop.findOne({ email: req.body.email });
+
+      if (!seller) {
+        return next(new ErrorHandler("Seller not found", 400));
+      }
+
+      const token = jwt.sign(
+        { shopId: seller._id },
+        process.env.JWT_SECRET_KEY,
+        {
+          expiresIn: "10m",
+        }
+      );
+
+      const resetLink = `${process.env.FRONTEND_URL}/reset-seller-password/${token}`;
+
+      try {
+        await sendPasswordResetEmail({
+          name: seller.name || "Seller",
+          email: seller.email,
+          subject: "Password Reset",
+          resetLink: resetLink,
+        });
+        res.status(201).json({
+          success: true,
+          message: "Email sent successfully",
+        });
+      } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+      }
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  })
+);
+
+// Reset seller password
+router.post(
+  "/reset-seller-password/:token",
+  catchAsyncErrors(async (req, res) => {
+    try {
+      // Verify the token sent by the seller
+      const decodedToken = jwt.verify(
+        req.params.token,
+        process.env.JWT_SECRET_KEY
+      );
+
+      // If the token is invalid, return an error
+      if (!decodedToken) {
+        return res.status(401).send({ message: "Invalid token" });
+      }
+
+      // Find the seller with the id from the token
+      const user = await Shop.findOne({ _id: decodedToken.shopId });
+      if (!user) {
+        return res.status(401).send({ message: "No seller found" });
+      }
+
+      // Update user's password, triggering the pre-save hook to hash the password
+      user.password = req.body.newPassword;
+      await user.save();
+
+      // Send success response
+      res.status(200).send({ message: "Password updated" });
+
+    } catch (error) {
+      // Handle specific JWT errors
+      if (error.name === "TokenExpiredError") {
+        return res.status(401).send({ message: "Token has expired" });
+      } else if (error.name === "JsonWebTokenError") {
+        return res.status(401).send({ message: "Invalid token" });
+      }
+      // Send error response for other errors
+      res.status(500).send({ message: error.message });
+    }
+  })
+);
+
 
 module.exports = router;
