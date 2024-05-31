@@ -4,7 +4,7 @@ const path = require("path");
 
 const sendActivationEmail = async (options) => {
   // Read the HTML template file
-  const htmlTemplate = fs.readFileSync(path.join(__dirname, "utils", "emailTemplate.html"), 'utf8');
+  const htmlTemplate = fs.readFileSync(path.join(__dirname, "emailTemplate.html"), 'utf8');
 
   // Replace placeholders with actual values
   const htmlContent = htmlTemplate
@@ -33,7 +33,7 @@ const sendActivationEmail = async (options) => {
 
 const sendPasswordResetEmail = async (options) => {
   // Read the HTML template file
-  const htmlTemplate = fs.readFileSync(path.join(__dirname, "utils", "passwordResetTemplate.html"), 'utf8');
+  const htmlTemplate = fs.readFileSync(path.join(__dirname, "passwordResetTemplate.html"), 'utf8');
 
 
   // Replace placeholders with actual values
@@ -63,7 +63,7 @@ const sendPasswordResetEmail = async (options) => {
 
 const sendSellerActivationEmail = async (options) => {
   // Read the HTML template file
-  const htmlTemplate = fs.readFileSync(path.join(__dirname, "utils", "emailTemplateSeller.html"), 'utf8');
+  const htmlTemplate = fs.readFileSync(path.join(__dirname, "emailTemplateSeller.html"), 'utf8');
 
   console.log(options)
   // Replace placeholders with actual values
