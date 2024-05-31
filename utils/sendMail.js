@@ -4,7 +4,7 @@ const path = require("path");
 
 const sendActivationEmail = async (options) => {
   // Read the HTML template file
-  const htmlTemplate = fs.readFileSync("./utils/emailTemplate.html", 'utf8');
+  const htmlTemplate = fs.readFileSync(path.join(__dirname, "utils", "emailTemplate.html"), 'utf8');
 
   // Replace placeholders with actual values
   const htmlContent = htmlTemplate
@@ -33,7 +33,7 @@ const sendActivationEmail = async (options) => {
 
 const sendPasswordResetEmail = async (options) => {
   // Read the HTML template file
-  const htmlTemplate = fs.readFileSync("./utils/passwordResetTemplate.html", 'utf8');
+  const htmlTemplate = fs.readFileSync(path.join(__dirname, "utils", "passwordResetTemplate.html"), 'utf8');
 
 
   // Replace placeholders with actual values
@@ -63,7 +63,7 @@ const sendPasswordResetEmail = async (options) => {
 
 const sendSellerActivationEmail = async (options) => {
   // Read the HTML template file
-  const htmlTemplate = fs.readFileSync("./utils/emailTemplateSeller.html", 'utf8');
+  const htmlTemplate = fs.readFileSync(path.join(__dirname, "utils", "emailTemplateSeller.html"), 'utf8');
 
   console.log(options)
   // Replace placeholders with actual values
@@ -90,7 +90,5 @@ const sendSellerActivationEmail = async (options) => {
 
   await transporter.sendMail(mailOptions);
 };
-
-
 
 module.exports = { sendActivationEmail, sendPasswordResetEmail, sendSellerActivationEmail };

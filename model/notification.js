@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  Id: {
+  recieverId: {
     type: String,
     required: true,
   },
