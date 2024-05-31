@@ -5,6 +5,7 @@ const express = require("express");
 const cloudinary = require("cloudinary");
 const router = express.Router();
 const { upload } = require("../multer");
+const Notification = require("../model/notification")
 
 // create new message
 router.post(
